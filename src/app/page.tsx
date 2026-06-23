@@ -20,12 +20,12 @@ export default async function HomePage() {
               Improve your Prompt Engineering skills and compete with your team.
             </p>
           </div>
-          <Link
+          {/* <Link
             className="inline-flex items-center rounded-full bg-slate-900 px-5 py-2 text-sm font-semibold text-white transition hover:bg-slate-700"
             href="/results"
           >
             View results dashboard
-          </Link>
+          </Link> */}
         </div>
       </section>
 
