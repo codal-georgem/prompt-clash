@@ -27,11 +27,16 @@ export function HomeScenariosModal({ scenarios }: HomeScenariosModalProps) {
 
   return (
     <>
-      <section className="mt-10">
-        <h2 className="font-heading text-3xl font-semibold tracking-tight">Scenarios</h2>
-        <p className="text-sm text-slate-600 my-4">
-          Click any scenario card to open details and submit your prompt in a modal.
-        </p>
+      <section className="mt-10" id="scenarios">
+        <div className="mb-6 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h2 className="font-heading text-3xl font-semibold tracking-tight text-slate-900">Scenarios</h2>
+            <p className="mt-1 text-sm text-slate-500">
+              {scenarios.length} challenges — pick one to test your AI prompting skills.
+            </p>
+          </div>
+          {/* <p className="text-xs text-slate-400">Colour-coded by area &amp; difficulty</p> */}
+        </div>
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {scenarios.map((scenario) => (
             <ScenarioCard key={scenario.id} onClick={() => setActiveScenario(scenario)} scenario={scenario} />
@@ -49,7 +54,7 @@ export function HomeScenariosModal({ scenarios }: HomeScenariosModalProps) {
             onClick={(event) => event.stopPropagation()}
           >
             <div className="mb-4 flex items-center justify-between">
-              <h3 className="font-heading text-2xl font-bold text-slate-900">Submit Prompt For Selected Scenario</h3>
+            <h3 className="font-heading text-xl font-bold text-slate-900">Submit Prompt</h3>
               <Button onClick={() => setActiveScenario(null)} size="sm" variant="outline">
                 <X className="h-4 w-4" />
               </Button>
