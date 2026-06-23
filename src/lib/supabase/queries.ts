@@ -167,15 +167,15 @@ export async function getSubmissionAnalytics(): Promise<ResultsAnalytics> {
     averageScore: Number((stat.total / stat.count).toFixed(1)),
   }));
 
-  const leaderboard = rows.slice(0, 10);
-  const bestPrompt = rows.length >= 1 ? rows[0] : null;
-  const worstPrompt = rows.length >= 2 ? rows[rows.length - 1] : null;
-  const goodPrompt = rows.length >= 3 ? rows[Math.floor(rows.length / 2)] : null;
-  const needsImprovementList = [...rows].sort((a, b) => a.score - b.score).slice(0, 10);
-
   const bestPrompts = rows.filter((row) => row.score >= 76);
   const goodPrompts = rows.filter((row) => row.score >= 41 && row.score <= 75);
   const worstPrompts = rows.filter((row) => row.score <= 40);
+
+  const leaderboard = rows.slice(0, 10);
+  const bestPrompt = bestPrompts[0] ?? null;
+  const goodPrompt = goodPrompts[0] ?? null;
+  const worstPrompt = [...worstPrompts].sort((a, b) => a.score - b.score)[0] ?? null;
+  const needsImprovementList = [...rows].sort((a, b) => a.score - b.score).slice(0, 10);
 
   return {
     metrics,

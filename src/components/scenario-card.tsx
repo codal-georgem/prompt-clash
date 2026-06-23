@@ -2,15 +2,16 @@ import type { Scenario } from "@/types/domain";
 
 type ScenarioCardProps = {
   scenario: Scenario;
+  onClick?: () => void;
 };
 
-export function ScenarioCard({ scenario }: ScenarioCardProps) {
+export function ScenarioCard({ scenario, onClick }: ScenarioCardProps) {
   const [area, title] = scenario.title.includes("|")
     ? scenario.title.split("|").map((part) => part.trim())
     : ["General", scenario.title];
 
-  return (
-    <article className="group relative overflow-hidden rounded-3xl border border-slate-200 bg-white p-5 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.55)] transition hover:-translate-y-0.5 hover:shadow-[0_24px_50px_-28px_rgba(15,23,42,0.55)]">
+  const content = (
+    <>
       <div className="pointer-events-none absolute -right-12 -top-10 h-28 w-28 rounded-full bg-cyan-100/60 blur-2xl transition group-hover:bg-cyan-200/55" />
 
       <div className="relative mb-4 flex flex-wrap items-center gap-2">
@@ -28,6 +29,20 @@ export function ScenarioCard({ scenario }: ScenarioCardProps) {
         <span className="font-semibold text-slate-500">Description: </span>
         {scenario.description}
       </p>
-    </article>
+    </>
   );
+
+  if (onClick) {
+    return (
+      <button
+        className="group relative w-full overflow-hidden rounded-3xl border border-slate-200 bg-white p-5 text-left shadow-[0_18px_40px_-30px_rgba(15,23,42,0.55)] transition hover:-translate-y-0.5 hover:shadow-[0_24px_50px_-28px_rgba(15,23,42,0.55)]"
+        onClick={onClick}
+        type="button"
+      >
+        {content}
+      </button>
+    );
+  }
+
+  return <article className="group relative overflow-hidden rounded-3xl border border-slate-200 bg-white p-5 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.55)]">{content}</article>;
 }

@@ -5,6 +5,8 @@ import { ArcElement, Chart as ChartJS, Legend, Tooltip } from "chart.js";
 import { Pie } from "react-chartjs-2";
 import {
   BarChart3,
+  CheckCircle2,
+  CircleHelp,
   Gauge,
   ListChecks,
   Medal,
@@ -14,6 +16,7 @@ import {
   TrendingUp,
   Trophy,
   Users,
+  XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -65,6 +68,16 @@ function PromptColumn({
 
   const techniques = row ? analyzePromptTechniques(row.promptText) : null;
 
+  const techniquesRows = techniques
+    ? [
+        { label: "Clarity", strong: techniques.clarity },
+        { label: "Context", strong: techniques.context },
+        { label: "Constraints", strong: techniques.constraints },
+        { label: "Specificity", strong: techniques.specificity },
+        { label: "Output Format", strong: techniques.outputFormat },
+      ]
+    : [];
+
   return (
     <article className={`rounded-2xl border px-5 py-4 ${toneClass}`}>
       <h3 className="flex items-center gap-2 text-lg font-semibold text-slate-900">
@@ -90,19 +103,30 @@ function PromptColumn({
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
               Technique Diff
             </p>
-            <ul className="mt-2 space-y-1 text-xs">
-              <li>Clarity: {techniques?.clarity ? "Strong" : "Weak"}</li>
-              <li>Context: {techniques?.context ? "Strong" : "Weak"}</li>
-              <li>
-                Constraints: {techniques?.constraints ? "Strong" : "Weak"}
-              </li>
-              <li>
-                Specificity: {techniques?.specificity ? "Strong" : "Weak"}
-              </li>
-              <li>
-                Output Format: {techniques?.outputFormat ? "Strong" : "Weak"}
-              </li>
-            </ul>
+            <div className="mt-2 space-y-2 text-xs">
+              {techniquesRows.map((item) => (
+                <div
+                  className="flex items-center justify-between rounded-md border border-slate-200 bg-white px-2 py-1.5"
+                  key={item.label}
+                >
+                  <span className="font-medium text-slate-700">{item.label}</span>
+                  <span
+                    className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-semibold ${
+                      item.strong
+                        ? "bg-emerald-100 text-emerald-700"
+                        : "bg-rose-100 text-rose-700"
+                    }`}
+                  >
+                    {item.strong ? (
+                      <CheckCircle2 className="h-3 w-3" />
+                    ) : (
+                      <XCircle className="h-3 w-3" />
+                    )}
+                    {item.strong ? "Strong" : "Weak"}
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}
@@ -268,9 +292,70 @@ function LeaderboardModal({
   );
 }
 
+function ScoreInfoModal({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-4">
+      <div className="w-full max-w-3xl overflow-hidden rounded-2xl bg-white shadow-2xl">
+        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+          <h3 className="flex items-center gap-2 text-lg font-semibold text-slate-900">
+            <CircleHelp className="h-5 w-5 text-sky-600" />
+            Prompt Score Calculation
+          </h3>
+          <Button onClick={onClose} variant="outline">
+            Close
+          </Button>
+        </div>
+
+        <div className="space-y-4 px-5 py-4 text-sm text-slate-700">
+          <p className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+            Score is calculated out of <span className="font-semibold">100</span> using the Golden Rule and prompt engineering rubric.
+          </p>
+
+          <div className="rounded-xl border border-slate-200 bg-white p-4">
+            <p className="mb-2 font-semibold text-slate-900">Golden Rule Check</p>
+            <p>
+              The prompt must match the selected scenario title and description. If relevance is weak or mismatched,
+              score is heavily reduced.
+            </p>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-2">
+            <div className="rounded-xl border border-slate-200 bg-white p-4">
+              <p className="font-semibold text-slate-900">Rubric Criteria (20 each)</p>
+              <ul className="mt-2 list-disc space-y-1 pl-5">
+                <li>Scenario Relevance</li>
+                <li>Clarity</li>
+                <li>Context</li>
+                <li>Constraints and Specificity</li>
+                <li>Output Format Definition</li>
+              </ul>
+            </div>
+
+            <div className="rounded-xl border border-slate-200 bg-white p-4">
+              <p className="font-semibold text-slate-900">Category Mapping</p>
+              <ul className="mt-2 space-y-1">
+                <li>
+                  <span className="font-semibold">0-40:</span> Beginner
+                </li>
+                <li>
+                  <span className="font-semibold">41-75:</span> Intermediate
+                </li>
+                <li>
+                  <span className="font-semibold">76-100:</span> Advanced
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function ResultsDashboardClient() {
   const [analytics, setAnalytics] = useState<ResultsAnalytics | null>(null);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [showScoreInfo, setShowScoreInfo] = useState(false);
 
   const [isLoadingDashboard, setIsLoadingDashboard] = useState(false);
 
@@ -400,10 +485,16 @@ export function ResultsDashboardClient() {
           </section>
 
           <section className="space-y-4 rounded-2xl border border-slate-200 bg-gradient-to-br from-white to-cyan-50 px-5 py-5">
-            <h2 className="flex items-center gap-2 text-xl font-semibold text-slate-900">
-              <Sparkles className="h-5 w-5 text-cyan-600" />
-              Prompt Quality
-            </h2>
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="flex items-center gap-2 text-xl font-semibold text-slate-900">
+                <Sparkles className="h-5 w-5 text-cyan-600" />
+                Prompt Quality
+              </h2>
+              <Button onClick={() => setShowScoreInfo(true)} size="sm" variant="outline">
+                <CircleHelp className="mr-2 h-4 w-4" />
+                Score Info
+              </Button>
+            </div>
             <div className="grid gap-4 lg:grid-cols-3">
               <PromptColumn
                 heading="Worst Prompt"
@@ -454,6 +545,7 @@ export function ResultsDashboardClient() {
           rows={analytics?.leaderboard ?? []}
         />
       )}
+      {showScoreInfo && <ScoreInfoModal onClose={() => setShowScoreInfo(false)} />}
     </div>
   );
 }

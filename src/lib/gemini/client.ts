@@ -83,14 +83,21 @@ function extractJsonObject(rawText: string): unknown {
   }
 }
 
-function buildEvaluationPrompt(promptText: string): string {
+function buildEvaluationPrompt(input: {
+  promptText: string;
+  scenarioTitle: string;
+  scenarioDescription: string;
+}): string {
   return [
     "You are evaluating an employee prompt for prompt engineering quality.",
+    "The prompt MUST match the selected scenario title and description.",
+    "Golden Rule:",
+    "If the prompt does not align with scenario intent/requirements, heavily penalize the score.",
     "Score based on this rubric (20 points each):",
-    "1) Clarity",
-    "2) Context",
-    "3) Constraints",
-    "4) Specificity",
+    "1) Scenario Relevance (based on selected title + description)",
+    "2) Clarity",
+    "3) Context",
+    "4) Constraints + Specificity",
     "5) Output Format Definition",
     "Total score must be between 0 and 100.",
     "Category rules:",
@@ -106,12 +113,20 @@ function buildEvaluationPrompt(promptText: string): string {
     '  "improvedPrompt": "..."',
     "}",
     "Do not include markdown fences.",
+    "Selected scenario title:",
+    input.scenarioTitle,
+    "Selected scenario description:",
+    input.scenarioDescription,
     "Employee prompt to evaluate:",
-    promptText,
+    input.promptText,
   ].join("\n");
 }
 
-export async function evaluatePrompt(promptText: string): Promise<PromptEvaluation> {
+export async function evaluatePrompt(input: {
+  promptText: string;
+  scenarioTitle: string;
+  scenarioDescription: string;
+}): Promise<PromptEvaluation> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     throw new Error("Missing GEMINI_API_KEY");
@@ -120,7 +135,7 @@ export async function evaluatePrompt(promptText: string): Promise<PromptEvaluati
   const ai = new GoogleGenAI({ apiKey });
   const response = await ai.models.generateContent({
     model: GEMINI_MODEL,
-    contents: buildEvaluationPrompt(promptText),
+    contents: buildEvaluationPrompt(input),
   });
 
   const rawText = (response.text ?? "").trim();

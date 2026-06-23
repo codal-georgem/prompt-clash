@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { enforceScenarioGoldenRule } from "@/lib/actions/golden-rule";
 import { evaluatePrompt } from "@/lib/gemini/client";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { PromptCategory, PromptEvaluation } from "@/types/domain";
@@ -22,9 +23,27 @@ function categoryFromScore(score: number): PromptCategory {
   return "Advanced";
 }
 
-function localFallbackEvaluation(promptText: string): PromptEvaluation {
+function localFallbackEvaluation(input: {
+  promptText: string;
+  scenarioTitle: string;
+  scenarioDescription: string;
+}): PromptEvaluation {
+  const promptText = input.promptText;
   const lower = promptText.toLowerCase();
-  let score = 25;
+  let score = 20;
+
+  const scenarioCorpus = `${input.scenarioTitle} ${input.scenarioDescription}`.toLowerCase();
+  const scenarioTokens = scenarioCorpus
+    .split(/[^a-z0-9]+/)
+    .filter((token) => token.length > 3)
+    .slice(0, 20);
+
+  const relevanceHits = scenarioTokens.filter((token) => lower.includes(token)).length;
+  const relevanceRatio = scenarioTokens.length > 0 ? relevanceHits / scenarioTokens.length : 0;
+
+  if (relevanceRatio >= 0.3) score += 20;
+  else if (relevanceRatio >= 0.15) score += 12;
+  else score += 2;
 
   const signals = [
     ["context", 15],
@@ -46,24 +65,33 @@ function localFallbackEvaluation(promptText: string): PromptEvaluation {
   return {
     score,
     category: categoryFromScore(score),
-    strengths: ["Submission was analyzed using local fallback scoring."],
+    strengths: ["Submission was analyzed using local fallback scoring with scenario relevance checks."],
     weaknesses: ["AI service was unavailable during submission; re-run analysis later for richer feedback."],
-    improvedPrompt: `Improve this prompt by adding context, constraints, and explicit output format: ${promptText}`,
+    improvedPrompt: `Improve this prompt so it clearly matches the scenario requirements (${input.scenarioTitle}), and add context, constraints, and explicit output format: ${promptText}`,
   };
 }
 
-async function evaluateWithRetry(promptText: string): Promise<PromptEvaluation> {
+async function evaluateWithRetry(input: {
+  promptText: string;
+  scenarioTitle: string;
+  scenarioDescription: string;
+}): Promise<PromptEvaluation> {
   let lastError: unknown;
 
   for (let attempt = 0; attempt < 3; attempt += 1) {
     try {
-      return await evaluatePrompt(promptText);
+      const aiEvaluation = await evaluatePrompt(input);
+      return enforceScenarioGoldenRule(aiEvaluation, input);
     } catch (error) {
       lastError = error;
     }
   }
 
-  return localFallbackEvaluation(promptText + ` [fallback reason: ${lastError instanceof Error ? lastError.message : "unknown"}]`);
+  const fallback = localFallbackEvaluation({
+    ...input,
+    promptText: `${input.promptText} [fallback reason: ${lastError instanceof Error ? lastError.message : "unknown"}]`,
+  });
+  return enforceScenarioGoldenRule(fallback, input);
 }
 
 export async function submitPromptAction(input: {
@@ -79,6 +107,19 @@ export async function submitPromptAction(input: {
   }
 
   const supabase = createSupabaseServerClient();
+
+  const { data: scenario, error: scenarioError } = await supabase
+    .from("scenarios")
+    .select("title, description")
+    .eq("id", parsed.data.scenarioId)
+    .single();
+
+  if (scenarioError || !scenario) {
+    return {
+      success: false,
+      message: scenarioError?.message ?? "Selected scenario not found",
+    };
+  }
 
   const { data: submission, error: submissionError } = await supabase
     .from("submissions")
@@ -101,7 +142,11 @@ export async function submitPromptAction(input: {
     };
   }
 
-  const evaluation = await evaluateWithRetry(parsed.data.promptText);
+  const evaluation = await evaluateWithRetry({
+    promptText: parsed.data.promptText,
+    scenarioTitle: scenario.title,
+    scenarioDescription: scenario.description,
+  });
 
   const { error: analysisError } = await supabase.from("prompt_analysis").insert({
     submission_id: submissionId,

@@ -4,6 +4,8 @@ import { evaluatePrompt } from "@/lib/gemini/client";
 
 const bodySchema = z.object({
   promptText: z.string().min(20),
+  scenarioTitle: z.string().min(3),
+  scenarioDescription: z.string().min(10),
 });
 
 export async function POST(request: Request) {
@@ -15,7 +17,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid request payload" }, { status: 400 });
     }
 
-    const evaluation = await evaluatePrompt(parsed.data.promptText);
+    const evaluation = await evaluatePrompt({
+      promptText: parsed.data.promptText,
+      scenarioTitle: parsed.data.scenarioTitle,
+      scenarioDescription: parsed.data.scenarioDescription,
+    });
     return NextResponse.json(evaluation);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";

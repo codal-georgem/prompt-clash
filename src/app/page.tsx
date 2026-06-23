@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { ScenarioCard } from "@/components/scenario-card";
-import { SubmissionForm } from "@/components/submission-form";
+import { HomeScenariosModal } from "@/components/home-scenarios-modal";
 import { ensureScenariosSeeded, getScenarios } from "@/lib/supabase/queries";
 
 export const dynamic = "force-dynamic";
@@ -10,7 +9,7 @@ export default async function HomePage() {
   const scenarios = await getScenarios();
 
   return (
-    <main className="w-full space-y-10 px-4 py-10 md:px-10 md:py-14 lg:px-16">
+    <main className="w-full px-4 py-10 md:px-10 md:py-14 lg:px-16">
       <section className="relative overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-slate-50 to-cyan-50 p-8 md:p-11">
         <div className="absolute -right-20 -top-16 h-48 w-48 rounded-full bg-cyan-200/35 blur-2xl" />
         <div className="absolute -bottom-10 left-24 h-40 w-40 rounded-full bg-slate-200/45 blur-2xl" />
@@ -30,19 +29,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="space-y-4">
-        <h2 className="font-heading text-3xl font-semibold tracking-tight">Scenarios</h2>
-        <p className="text-sm text-slate-600">Detailed role-based scenarios to make each challenge clearer and easier to understand.</p>
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {scenarios.map((scenario) => (
-            <ScenarioCard key={scenario.id} scenario={scenario} />
-          ))}
-        </div>
-      </section>
-
-      <section>
-        <SubmissionForm scenarios={scenarios} />
-      </section>
+      <HomeScenariosModal scenarios={scenarios} />
     </main>
   );
 }

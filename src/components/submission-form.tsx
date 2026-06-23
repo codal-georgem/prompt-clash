@@ -21,9 +21,15 @@ type FormValues = z.infer<typeof schema>;
 
 type SubmissionFormProps = {
   scenarios: Scenario[];
+  lockedScenario?: Scenario;
+  onSubmitted?: () => void;
 };
 
-export function SubmissionForm({ scenarios }: SubmissionFormProps) {
+export function SubmissionForm({
+  scenarios,
+  lockedScenario,
+  onSubmitted,
+}: SubmissionFormProps) {
   const [isPending, startTransition] = useTransition();
   const {
     register,
@@ -34,7 +40,7 @@ export function SubmissionForm({ scenarios }: SubmissionFormProps) {
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
-      scenarioId: "",
+      scenarioId: lockedScenario?.id ?? "",
       promptText: "",
     },
   });
@@ -49,13 +55,14 @@ export function SubmissionForm({ scenarios }: SubmissionFormProps) {
 
       toast.success(result.message);
       reset();
+      onSubmitted?.();
     });
   };
 
   const selectedScenarioId = watch("scenarioId");
-  const selectedScenario = scenarios.find(
-    (scenario) => scenario.id === selectedScenarioId,
-  );
+  const selectedScenario =
+    lockedScenario ??
+    scenarios.find((scenario) => scenario.id === selectedScenarioId);
   const [area, title] = selectedScenario?.title.includes("|")
     ? selectedScenario.title.split("|").map((part) => part.trim())
     : ["General", selectedScenario?.title ?? ""];
@@ -73,47 +80,51 @@ export function SubmissionForm({ scenarios }: SubmissionFormProps) {
       </header>
 
       <form className="space-y-5" onSubmit={handleSubmit(onSubmit)}>
-        <div className="grid gap-5 md:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="scenarioId">Scenario</Label>
-            <Select id="scenarioId" {...register("scenarioId")}>
-              <option value="">Select a scenario</option>
-              {scenarios.map((scenario) => (
-                <option key={scenario.id} value={scenario.id}>
-                  {scenario.title}
-                </option>
-              ))}
-            </Select>
-            {errors.scenarioId ? (
-              <p className="text-sm text-danger">{errors.scenarioId.message}</p>
-            ) : null}
-          </div>
-
-          {selectedScenario ? (
-            <article className="rounded-2xl border border-slate-200 bg-white p-4">
-              <p className="mb-2 text-sm font-semibold text-slate-900">
-                Selected Scenario
-              </p>
-              <div className="mb-2 flex flex-wrap items-center gap-2">
-                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold tracking-wide text-slate-700">
-                  Area: {area}
-                </span>
-              </div>
-              <p className="text-sm font-semibold text-slate-900">
-                <span className="text-slate-500">Title: </span>
-                {title}
-              </p>
-              <p className="mt-2 text-sm leading-6 text-slate-600">
-                <span className="font-semibold text-slate-500">Description: </span>
-                {selectedScenario.description}
-              </p>
-            </article>
-          ) : (
-            <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500">
-              Select a scenario to preview it here.
+        {lockedScenario ? (
+          <input type="hidden" value={lockedScenario.id} {...register("scenarioId")} />
+        ) : (
+          <div className="grid gap-5 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="scenarioId">Scenario</Label>
+              <Select id="scenarioId" {...register("scenarioId")}>
+                <option value="">Select a scenario</option>
+                {scenarios.map((scenario) => (
+                  <option key={scenario.id} value={scenario.id}>
+                    {scenario.title}
+                  </option>
+                ))}
+              </Select>
+              {errors.scenarioId ? (
+                <p className="text-sm text-danger">{errors.scenarioId.message}</p>
+              ) : null}
             </div>
-          )}
-        </div>
+
+            {selectedScenario ? (
+              <article className="rounded-2xl border border-slate-200 bg-white p-4">
+                <p className="mb-2 text-sm font-semibold text-slate-900">
+                  Selected Scenario
+                </p>
+                <div className="mb-2 flex flex-wrap items-center gap-2">
+                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold tracking-wide text-slate-700">
+                    Area: {area}
+                  </span>
+                </div>
+                <p className="text-sm font-semibold text-slate-900">
+                  <span className="text-slate-500">Title: </span>
+                  {title}
+                </p>
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  <span className="font-semibold text-slate-500">Description: </span>
+                  {selectedScenario.description}
+                </p>
+              </article>
+            ) : (
+              <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500">
+                Select a scenario to preview it here.
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="space-y-2">
           <Label htmlFor="promptText">Prompt</Label>
