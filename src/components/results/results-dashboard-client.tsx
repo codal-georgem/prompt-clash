@@ -22,6 +22,7 @@ import {
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { MetricCard } from "@/components/dashboard/metric-card";
+import { detectPromptTechnique } from "@/lib/prompt-technique";
 import type { ResultsAnalytics, SubmissionWithAnalysis } from "@/types/domain";
 
 ChartJS.register(ArcElement, Tooltip, Legend);
@@ -302,15 +303,17 @@ function PromptList({
       ) : (
         <ul className="mt-3 space-y-2 text-sm text-slate-700">
           {rows.map((row) => (
-            <li
-              className="rounded-lg border border-slate-200 bg-white p-3"
-              key={row.submissionId}
-            >
+            <li className="rounded-lg border border-slate-200 bg-white p-3" key={row.submissionId}>
               <button
                 className="w-full text-left"
                 onClick={() => onSelectRow(row)}
                 type="button"
               >
+                <div className="mb-2">
+                  <span className="inline-flex rounded-full bg-cyan-50 px-2 py-0.5 text-[11px] font-semibold text-cyan-700">
+                    Technique: {detectPromptTechnique(row.promptText).name}
+                  </span>
+                </div>
                 <p className="line-clamp-3">{row.promptText}</p>
                 <div className="mt-1 flex items-center justify-between text-xs font-semibold text-slate-600">
                   <p>Score: {row.score}</p>
@@ -333,6 +336,7 @@ function PromptDetailsModal({
   row: SubmissionWithAnalysis;
 }) {
   const breakdown = buildScoreBreakdown(row);
+  const technique = detectPromptTechnique(row.promptText);
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-950/55 p-2 sm:p-4 md:items-center">
@@ -367,6 +371,18 @@ function PromptDetailsModal({
                   {row.category} ({getCategoryRange(row.category)})
                 </span>
               </p>
+            </div>
+            <div className="rounded-xl border border-cyan-200 bg-cyan-50 p-3 md:col-span-2">
+              <p className="text-xs uppercase tracking-wide text-cyan-700">
+                Prompt Technique
+              </p>
+              <p className="mt-1 font-semibold text-cyan-900">
+                {technique.name}
+                <span className="ml-2 text-sm font-medium text-cyan-700">
+                  {technique.confidence}% confidence
+                </span>
+              </p>
+              <p className="mt-1 text-xs text-cyan-800">{technique.reason}</p>
             </div>
           </div>
 

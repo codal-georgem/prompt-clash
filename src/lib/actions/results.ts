@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { enforceScenarioGoldenRule } from "@/lib/actions/golden-rule";
 import { evaluatePrompt } from "@/lib/gemini/client";
+import { detectPromptTechnique } from "@/lib/prompt-technique";
 import { getSubmissionAnalytics } from "@/lib/supabase/queries";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -103,11 +104,18 @@ export async function generatePendingAnalyses(): Promise<GenerateAnalysesResult>
         scenarioTitle: scenario.title,
         scenarioDescription: scenario.description,
       });
+
+      const technique = detectPromptTechnique(submission.prompt_text);
+      const techniqueLine = `Prompt Technique: ${technique.name} (${technique.confidence}% confidence)`;
+      const strengths = evaluation.strengths.some((item) => item.startsWith("Prompt Technique:"))
+        ? evaluation.strengths
+        : [techniqueLine, ...evaluation.strengths];
+
       const { error: insertError } = await supabase.from("prompt_analysis").insert({
         submission_id: submission.id,
         score: evaluation.score,
         category: evaluation.category,
-        strengths: evaluation.strengths,
+        strengths,
         weaknesses: evaluation.weaknesses,
         improved_prompt: evaluation.improvedPrompt,
       });

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { enforceScenarioGoldenRule } from "@/lib/actions/golden-rule";
 import { evaluatePrompt } from "@/lib/gemini/client";
+import { detectPromptTechnique } from "@/lib/prompt-technique";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { PromptCategory, PromptEvaluation } from "@/types/domain";
 
@@ -16,6 +17,23 @@ type SubmitResult = {
   success: boolean;
   message: string;
 };
+
+function withPromptTechnique(
+  evaluation: PromptEvaluation,
+  promptText: string
+): PromptEvaluation {
+  const technique = detectPromptTechnique(promptText);
+  const techniqueLine = `Prompt Technique: ${technique.name} (${technique.confidence}% confidence)`;
+
+  const strengths = evaluation.strengths.some((item) => item.startsWith("Prompt Technique:"))
+    ? evaluation.strengths
+    : [techniqueLine, ...evaluation.strengths];
+
+  return {
+    ...evaluation,
+    strengths,
+  };
+}
 
 function categoryFromScore(score: number): PromptCategory {
   if (score <= 40) return "Beginner";
@@ -148,13 +166,15 @@ export async function submitPromptAction(input: {
     scenarioDescription: scenario.description,
   });
 
+  const enrichedEvaluation = withPromptTechnique(evaluation, parsed.data.promptText);
+
   const { error: analysisError } = await supabase.from("prompt_analysis").insert({
     submission_id: submissionId,
-    score: evaluation.score,
-    category: evaluation.category,
-    strengths: evaluation.strengths,
-    weaknesses: evaluation.weaknesses,
-    improved_prompt: evaluation.improvedPrompt,
+    score: enrichedEvaluation.score,
+    category: enrichedEvaluation.category,
+    strengths: enrichedEvaluation.strengths,
+    weaknesses: enrichedEvaluation.weaknesses,
+    improved_prompt: enrichedEvaluation.improvedPrompt,
   });
 
   if (analysisError) {
